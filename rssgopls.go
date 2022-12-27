@@ -72,8 +72,21 @@ func main() {
 
 // http serve static rss xml file
 func serveFile() {
-	fs := http.FileServer(http.Dir(serveDir))
-	http.Handle("/", fs)
+	fs := http.FileServer(http.Dir(filepath.Join(serveDir, "static")))
+
+	mux := http.NewServeMux()
+
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Add a handler for the root route that logs the request and then
+	// serves the FileServer handler for the /static/ route
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Log the request
+		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+
+		// Serve the FileServer handler
+		fs.ServeHTTP(w, r)
+	})
 
 	log.Print("Listening on :3786...")
 	err := http.ListenAndServe(":3786", nil)
@@ -104,7 +117,7 @@ func fetchRss() {
 	})
 
 	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
+		log.Println("Visiting", r.URL)
 	})
 
 	err = c.Visit("http://dev.to/top/week")
@@ -119,8 +132,9 @@ func fetchRss() {
 		Posts: posts,
 	}
 
-	f, err := os.Create(filepath.Join(serveDir, "rss.xml"))
+	f, err := os.Create(filepath.Join(serveDir, "static", "rss.xml"))
 	if err != nil {
+		log.Printf("unable to create file: %s\n", err)
 		return
 	}
 	defer f.Close()
