@@ -72,24 +72,17 @@ func main() {
 
 // http serve static rss xml file
 func serveFile() {
-	fs := http.FileServer(http.Dir(filepath.Join(serveDir, "static")))
+	fs := http.FileServer(http.Dir(filepath.Join(serveDir)))
 
-	mux := http.NewServeMux()
-
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// Add a handler for the root route that logs the request and then
-	// serves the FileServer handler for the /static/ route
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Log the request
+	// Create a handler function that wraps the file server handler and logs the requests
+	handler := func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
-
-		// Serve the FileServer handler
 		fs.ServeHTTP(w, r)
-	})
+	}
 
+	// Start the server with the handler function
 	log.Print("Listening on :3786...")
-	err := http.ListenAndServe(":3786", nil)
+	err := http.ListenAndServe(":3786", http.HandlerFunc(handler))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,19 +113,19 @@ func fetchRss() {
 		log.Println("Visiting", r.URL)
 	})
 
-	err = c.Visit("http://dev.to/top/week")
+	err = c.Visit("https://dev.to/top/week")
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	channel := Channel{
 		Title: "dev.to - top of the week",
-		Link:  "http://dev.to/top/week",
+		Link:  "https://dev.to/top/week",
 		Date:  time.Now().UTC().Format(time.RFC3339),
 		Posts: posts,
 	}
 
-	f, err := os.Create(filepath.Join(serveDir, "static", "rss.xml"))
+	f, err := os.Create(filepath.Join(serveDir, "rss.xml"))
 	if err != nil {
 		log.Printf("unable to create file: %s\n", err)
 		return
