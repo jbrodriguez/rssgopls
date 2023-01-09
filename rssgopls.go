@@ -61,7 +61,7 @@ func main() {
 
 	at := cron.New()
 
-	if _, err := at.AddFunc("32 8,12,16,20 * * *", fetchRss); err != nil {
+	if _, err := at.AddFunc("32 6,8,10,12,14,16,18,20 * * *", fetchRss); err != nil {
 		fmt.Printf("unable to set cron: %s\n", err)
 	}
 
